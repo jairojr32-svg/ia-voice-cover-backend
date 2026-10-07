@@ -207,7 +207,9 @@ def _run_rvc(model: str, src: str, dst: str, pitch: int, device: str) -> None:
     ]
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
-        raise RuntimeError(proc.stderr or proc.stdout or "rvc failed")
+        # AQUI ESTÁ A MUDANÇA: Incluímos o erro detalhado do subprocesso
+        detailed_error = proc.stderr or proc.stdout or "rvc script failed without error message."
+        raise RuntimeError(detailed_error)
 
 
 _is_downloading = False
@@ -226,6 +228,8 @@ def _run_download_script():
 @app.get("/voices")
 def voices():
     """Lists voices (RVC models) ready to sing."""
+    # Adicionamos uma verificação extra para ter certeza
+    print("Listing voices. Found folders:", os.listdir(RVC_MODELS_DIR) if os.path.exists(RVC_MODELS_DIR) else "Not Found")
     return {
         "voices": _list_voices(),
         "ready": os.path.exists(RVC_SCRIPT),
@@ -275,7 +279,8 @@ async def convert(request: Request):
             await asyncio.to_thread(_run_rvc, model, src, dst, pitch, device)
         except RuntimeError as e:
             shutil.rmtree(work, ignore_errors=True)
-            raise HTTPException(500, f"Voice conversion failed: {e}")
+            # AQUI ESTÁ A MUDANÇA: Usamos o erro detalhado na resposta
+            raise HTTPException(500, f"Voice conversion failed. Details: {e}")
 
     if not os.path.exists(dst):
         shutil.rmtree(work, ignore_errors=True)
