@@ -1,26 +1,26 @@
-FROM python:3.11-slim
 
-# ffmpeg do sistema (para prévias/decodificação) + libsndfile p/ soundfile + git + curl
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg libsndfile1 git curl \
+# Python 3.9 + Poetry + FFmpeg
+FROM python:3.9-slim
+
+# Install system deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    ffmpeg \
+    git \
+    libsndfile1 \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Python deps
 WORKDIR /app
-
-# HF Spaces roda como usuário não-root (uid 1000): cache do torch/demucs precisa ser gravável
-ENV HOME=/app \
-    TORCH_HOME=/app/.cache/torch \
-    XDG_CACHE_HOME=/app/.cache \
-    ALLOWED_ORIGINS=*
-
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY server.py .
-COPY rvc_infer.py .
-COPY download_popular_models.py .
+# Copy app code
+COPY . .
 
-RUN mkdir -p /app/.cache /app/models && chmod -R 777 /app
+# Download RVC models during build
+RUN python download_popular_models.py
 
+# Run entrypoint
 EXPOSE 7860
 CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "7860"]
