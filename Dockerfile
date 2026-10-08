@@ -24,4 +24,4 @@ RUN python download_popular_models.py
 
 # Expõe a porta e define o comando de inicialização
 EXPOSE 7860
-CMD ["uvicorn", "server:py", "--host", "0.0.0.0", "--port", "7860"]
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "7860"]
